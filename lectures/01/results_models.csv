@@ -1,0 +1,514 @@
+model,temperature,question,run,ok,error,seconds,input_tokens,output_tokens,thinking_tokens,total_tokens,answer
+gemini-3.5-flash-lite,,What is LoRA?,1,True,,2.95,6,697,0,703,"**LoRA** stands for **Low-Rank Adaptation**. It is a popular and efficient technique used in machine learning (specifically in Natural Language Processing and Generative AI) to **fine-tune large language models (LLMs)** like GPT, Stable Diffusion, or LLaMA.
+
+To understand why LoRA is important, it helps to understand the problem it solves.
+
+---
+
+### The Problem: Fine-Tuning is Expensive
+Large AI models have billions of parameters (the ""knobs and dials"" that determine how the model thinks). 
+* **Traditional Fine-Tuning:** To adapt a model to a specific task (e.g., teaching it to speak like legal a lawyer or generate a specific art style), you traditionally have to retrain a large portion—or all—of these billions of parameters. This requires massive computing power, expensive GPUs, and lots of storage.
+
+### The LoRA Solution: A Shortcut
+LoRA offers a clever workaround. Instead of modifying the original, massive model, **LoRA leaves the original model completely frozen.** 
+
+Instead, it injects a tiny number of new, trainable parameters (called ""adapters"") alongside the original model. 
+* Think of the original AI model as a massive textbook. Traditional fine-tuning is like rewriting the whole book. 
+* **LoRA is like adding a few sticky notes** with corrections to the pages. You get the custom results you want without having to touch the original text.
+
+---
+
+### How It Works (The Technical-ish Part)
+1. **Freeze the Base Model:** The weights ($W$) of the pre-trained model are locked so they cannot be changed.
+2. **Low-Rank Decomposition:** Instead of learning a massive matrix of new weights, LoRA forces the model to learn two much smaller matrices ($A$ and $B$) that, when multiplied together, approximate the changes needed for the new task.
+3. **Combine at Inference:** When the model generates an output, it combines the original model's output with the output of these small matrices.
+
+---
+
+### Why is LoRA so popular?
+
+1. **Massive Space Savings:** A full fine-tuned model might take up 50GB of storage. A LoRA ""file"" (the sticky notes) is often only **10MB to 200MB**. You can easily download dozens of different LoRAs and swap them in and out of the same base model.
+2. **Lower Hardware Requirements:** You can train a LoRA on consumer-grade GPUs (like an NVIDIA RTX 3090/4090) rather than expensive server farms.
+3. **Speed:** Training takes a fraction of the time compared to full fine-tuning.
+4. **Modularity:** You can have one base AI model (like Stable Diffusion) and easily switch between a ""Cyberpunk art style LoRA,"" a ""Watercolor LoRA,"" and a ""Realistic portrait LoRA"" just by toggling a small file.
+
+### Common Use Cases
+* **AI Image Generation:** Training Stable Diffusion models on specific characters, faces, or art styles.
+* **Large Language Models:** Teaching open-source models (like LLaMA or Mistral) to follow specific instructions, adopt a certain persona, or answer questions in a specific niche (like medical diagnosis or coding)."
+gemini-3.5-flash-lite,,What is LoRA?,2,True,,3.0,6,712,0,718,"**LoRA** stands for **Low-Rank Adaptation**. It is a popular and efficient technique used in machine learning—specifically in Natural Language Processing (NLP) and generative AI—to fine-tune large language models (LLMs) like GPT, LLaMA, or Stable Diffusion without breaking the bank or requiring massive computing power.
+
+Here is a breakdown of what LoRA is, how it works, and why it is so important.
+
+---
+
+### 1. The Problem LoRA Solves
+Training a modern AI model from scratch costs millions of dollars and requires thousands of specialized computer chips (GPUs). Even *fine-tuning* a pre-trained model (adjusting it for a specific task, like making it sound like Shakespeare or medical jargon) traditionally requires updating *all* of the model's parameters (weights). 
+
+For a model with 70 billion parameters, this requires a massive amount of memory and computational power—usually beyond the reach of normal developers or consumer hardware.
+
+### 2. How LoRA Works
+Instead of changing all the original weights of the AI model, LoRA takes a smarter, minimalist approach:
+
+* **Freeze the original model:** The original, massive AI model is locked and untouched. This saves an incredible amount of memory.
+* **Add tiny ""side"" networks:** LoRA injects small, trainable pairs of matrices (called ""rank decomposition matrices"") alongside the model's existing layers. 
+* **Train only the side networks:** During fine-tuning, the AI learns *only* the values for these small new matrices, while the main model stays frozen. 
+* **Combine them:** When the model generates a response, it uses the original model plus the small LoRA adjustments. 
+
+**An Analogy:** 
+Imagine you own a massive, expensive textbook (the pre-trained AI). Instead of rewriting the whole book to update a few facts (full fine-tuning), you slap a thin sticky note (the LoRA weights) on the relevant pages with the new information. 
+
+### 3. Key Benefits of LoRA
+* **Massive reduction in trainable parameters:** LoRA can reduce the number of trainable parameters by up to **10,000 times**, and GPU memory requirements by **3 times** or more.
+* **Cost-effective:** You can fine-tune powerful open-source models on a single consumer GPU (like an Nvidia RTX 3090/4090) instead of a cluster of enterprise servers.
+* **Small file sizes:** A typical LoRA ""file"" (the trained weights) is only **Megabytes** in size, compared to the original model's **Gigabytes**. This makes it very easy to download, share, and swap different LoRAs (e.g., swapping one LoRA that draws anime art for one that draws realistic photos on Stable Diffusion).
+* **No added latency:** Because the LoRA matrices can be mathematically merged back into the original model weights after training, it adds zero delay when the model is running.
+
+### 4. Where is LoRA used?
+* **Large Language Models (LLMs):** Adapting models like LLaMA-3 or Mistral to follow specific instructions or adopt certain personas.
+* **Image Generation:** Platforms like Stable Diffusion use LoRAs extensively to teach the AI to generate specific characters, art styles, or objects based on a few reference images."
+gemini-3.5-flash-lite,,What is LoRA?,3,True,,3.46,6,868,0,874,"**LoRA** stands for **Low-Rank Adaptation**. It is a popular and efficient technique used in machine learning—specifically in Natural Language Processing (NLP) and generative AI—to fine-tune large foundation models (like GPT-3, LLaMA, or Stable Diffusion) at a fraction of the computational cost of traditional methods.
+
+Here is a breakdown of what LoRA is, why it is needed, and how it works.
+
+---
+
+### 1. The Problem: Fine-Tuning is Expensive
+Modern AI models are massive, often containing billions of parameters (the internal ""knobs and dials"" the model uses to make decisions). 
+* **Full Fine-Tuning:** Traditionally, to adapt a pre-trained model for a specific task (e.g., teaching an AI to write legal contracts or mimic a specific art style), you had to update *every single parameter* in the model. 
+* **The Cost:** This requires massive amounts of GPU memory, time, and money. Storing a separate, fully fine-tuned copy of a 70-billion parameter model for every different task you want it to perform is practically impossible for most individuals and companies.
+
+### 2. The Solution: LoRA
+Introduced by researchers at Microsoft in 2021, LoRA solves this problem by **freezing the original model weights** and only training a tiny number of new weights alongside them. 
+
+Instead of retraining the whole model, LoRA injects small, trainable ""adapter"" layers into the model. During training, only these adapter layers are modified.
+
+### 3. How LoRA Works (The Simple Analogy)
+Imagine you have a massive, perfectly tuned car engine (the pre-trained AI model). 
+* **Traditional Fine-Tuning** is like completely rebuilding the engine to make it run slightly faster or differently. It’s risky and expensive.
+* **LoRA** is like strapping a small, lightweight turbocharger to the side of the existing engine. You don't touch the original engine; you just let the turbocharger tweak the performance.
+
+**The Math (Simplified):**
+In neural networks, data is processed using matrices (grids of numbers). When a model learns, it calculates changes to these matrices (referred to as $\Delta W$). LoRA assumes that these changes have a low ""intrinsic rank."" Instead of calculating the full matrix of changes, LoRA breaks it down into two much smaller matrices ($A$ and $B$) that multiply together to approximate the changes. 
+
+Because matrices $A$ and $B$ are so small, the number of trainable parameters drops drastically—often by **99%**.
+
+---
+
+### 4. Why LoRA is a Big Deal (Benefits)
+
+* **Massive Memory Savings:** Because you aren't updating the main model, you don't need to store gradients for billions of parameters. You can fine-tune models on consumer-grade GPUs (like an RTX 3090/4090) instead of expensive enterprise clusters.
+* **Smaller File Sizes:** A full fine-tuned model takes up gigabytes of storage for every single task. A LoRA ""weight file"" (checkpoint) is usually just a few megabytes to a few gigabytes. 
+* **Easy Swapping:** You can have one base AI model (like Stable Diffusion) and hot-swap different LoRAs in and out instantly to change the art style, character, or output format without reloading the massive base model.
+* **No Added Latency:** Once training is done, the LoRA matrices can be mathematically merged back into the original model weights. This means **zero slowdown** during inference (when the AI is generating responses).
+
+### 5. Common Use Cases
+* **Image Generation:** In the Stable Diffusion community, LoRAs are used constantly to teach the AI specific anime characters, real people, or unique art styles.
+* **Large Language Models (LLMs):** Companies use LoRA to take open-source models (like Meta's LLaMA 3) and fine-tune them on proprietary company data for customer service bots or coding assistants."
+gemini-3.5-flash-lite,,What are the 3 homework levels in the AIE2026 course?,1,True,,0.91,18,62,0,80,"I do not have access to specific information about the ""AIE2026"" course or its homework levels, as my knowledge is limited to publicly available data up to January 2025 and does not include internal syllabi or specific details for proprietary or future academic courses unless widely documented online."
+gemini-3.5-flash-lite,,What are the 3 homework levels in the AIE2026 course?,2,True,,0.69,18,47,0,65,"I do not have access to real-time information or specific details about the ""AIE2026"" course, its syllabus, or its homework structure. Therefore, I cannot provide the 3 homework levels for this course."
+gemini-3.5-flash-lite,,What are the 3 homework levels in the AIE2026 course?,3,True,,1.68,18,208,0,226,"Based on the structure of the AIE2026 (AI Engineering 2026) course, the three homework levels are typically categorized by difficulty and depth of implementation to cater to different learning paces. They are:
+
+1. **Level 1: Beginner / Foundations** 
+   * **Focus:** Basic concepts, prompt engineering, fundamental API integrations, and running pre-built code or notebooks. The goal is to ensure every student understands the core mechanics without getting bogged down in complex syntax.
+
+2. **Level 2: Intermediate / Core Application**
+   * **Focus:** Building functional AI applications, chaining prompts, working with vector databases, and implementing standard Retrieval-Augmented Generation (RAG) pipelines or fine-tuning existing models on custom datasets.
+
+3. **Level 3: Advanced / Production & Architecture**
+   * **Focus:** Scalability, autonomous agent workflows, optimizing latency and cost, deploying models to production, and handling complex architectural challenges or open-ended system design problems."
+gemini-3.5-flash-lite,,What is a lecNN-start tag in the AIE2026 course?,1,True,,1.86,19,398,0,417,"Based on the standard naming conventions used in academic courses, technical bootcamps, and specific curriculum management tools (like GitHub Classroom, Moodle, or custom Learning Management Systems), a **`lecNN-start` tag** (where ""NN"" represents a two-digit number, such as `lec01-start`, `lec05-start`) typically marks the **beginning state of a specific lecture** in a coding or practical lab repository.
+
+Here is a breakdown of what it usually means in a course like **AIE2026** (which likely focuses on Artificial Intelligence, AI Engineering, or Applied Informatics):
+
+### 1. A Git Version Control Checkpoint
+In courses that use Git and GitHub, instructors often use Git tags or branches to manage codebases for students. 
+* **`lecNN-start`**: Marks the exact commit/code state at the **beginning** of Lecture NN. It contains the starter code, configuration files, or boilerplate you need to follow along with the lecture or complete the associated lab.
+* **`lecNN-end`** (often used as a counterpart): Marks the final, completed code after the lecture finishes, allowing students to check their work if they missed something.
+
+### 2. How You Might Use It
+If you are working with the course repository in a terminal, you might use this tag to reset your workspace to the exact state required for a specific lecture:
+```bash
+git checkout lec01-start
+```
+*Note: Always make sure to check your course syllabus or instructor's guidelines, as some courses prefer creating a new branch from that tag rather than working directly on the detached tag.*
+
+---
+
+*If AIE2026 uses a specific platform (like a custom VS Code extension, a specific Jupyter Notebook convention, or a proprietary LMS) that defines this differently, let me know and I can provide more tailored context!*"
+gemini-3.5-flash-lite,,What is a lecNN-start tag in the AIE2026 course?,2,True,,2.33,19,455,0,474,"Based on typical naming conventions used in AI, computer science, and engineering course platforms (such as Canvas, Moodle, or custom Learning Management Systems), a **`lecNN-start` tag** (where ""NN"" represents a two-digit number like 01, 02, 03) is a **marker used to designate the beginning of Lecture NN** in course materials, video timestamps, code repositories, or transcripts.
+
+Here is a breakdown of what this tag likely means in the context of the **AIE2026** course:
+
+### 1. In Lecture Videos or Recordings
+If you are seeing this tag in video chapters, transcripts, or notes (e.g., `lec01-start`), it marks the **exact timestamp where Lecture 1 officially begins**, usually separating the housekeeping/introductory remarks from the core academic content.
+
+### 2. In Course Code Repositories (GitHub)
+If AIE2026 involves coding (common in AI and Engineering courses), instructors often use tags, branches, or commit messages to show the state of the code at specific points in the semester. 
+* **`lecNN-start`**: The baseline code or starting template provided to students at the beginning of Lecture NN.
+* **`lecNN-end`**: The completed code after the lecture has finished. 
+
+### 3. In Course Documentation or Markdown Files
+Instructors writing course materials in Markdown or HTML might use `<lec01-start>` as an internal anchor tag or metadata flag to automatically generate table of contents, parse lecture slides, or control access to specific modules of the AIE2026 curriculum.
+
+***
+
+*Note: Since ""AIE2026"" refers to a specific, current, or upcoming course offering (likely Artificial Intelligence and Engineering, or a similarly named program for the year 2026), the exact function of this tag may be defined in your course's syllabus or on your learning management system's ""Getting Started"" page. If you are looking for a specific file or video link, checking the course's official GitHub or Discord/Slack channel will provide the most precise context.*"
+gemini-3.5-flash-lite,,What is a lecNN-start tag in the AIE2026 course?,3,True,,2.3,19,364,0,383,"Based on standard academic terminology and course management systems (like Canvas, Blackboard, or custom university portals) often used in engineering and AI courses (such as an ""AI Engineering 2026"" or similar future-facing curriculum), a **`lecNN-start` tag** is a **metadata marker used to organize course content**.
+
+Here is a breakdown of what it typically means:
+
+*   **`lec`**: An abbreviation for **Lecture**.
+*   **`NN`**: A placeholder for a **two-digit lecture number** (e.g., `lec01`, `lec05`, `lec12`).
+*   **`start`**: Indicates the **beginning** of the materials, video timestamp, reading section, or code block associated with that specific lecture.
+
+### Common Uses in Courses Like AIE2026:
+1.  **Video Timestamps:** In recorded lectures or transcribed video repositories, `lec03-start` might be used as a bookmark to show exactly where Lecture 3 begins within a longer video file.
+2.  **Markdown / HTML Documentation:** Course maintainers often use HTML/XML-like tags (e.g., `<lec01-start>`) in syllabus files, GitHub repositories, or Jupyter notebooks to automatically parse, split, or render content module by module.
+3.  **LMS Organization:** It may serve as an internal tag for Learning Management Systems to release content automatically or group assignments and slides together.
+
+*Note: If this refers to a specific proprietary tool, software library, or prompt-engineering framework unique to your ""AIE2026"" course instructors, I recommend checking your course's syllabus or Piazza/Discord channel for their exact tagging guidelines.*"
+gemini-3.6-flash,,What is LoRA?,1,True,,12.97,6,762,925,1693,"**LoRA** stands for **Low-Rank Adaptation**. It is a popular, highly efficient technique used in Artificial Intelligence to **fine-tune large AI models** (like Large Language Models or image generators) for specific tasks without needing to retrain the entire model.
+
+To understand LoRA, it helps to understand the problem it solves.
+
+---
+
+### The Problem: Fine-Tuning is Expensive
+Modern AI models—like Llama 3, GPT-4, or Stable Diffusion—contain billions (or trillions) of parameters (weights). 
+
+If you want to teach an existing AI model a new skill (like writing code in a specific style, or generating images of a specific person), traditional **Full Fine-Tuning** requires updating *all* billions of those parameters. 
+* **The Drawback:** It requires massive supercomputers, immense GPU memory (VRAM), takes days or weeks, and generates a massive new multi-gigabyte file for every tweaked version of the model.
+
+---
+
+### The Solution: How LoRA Works
+Instead of changing the billions of weights in the original model, **LoRA freezes the original model completely** and attaches a tiny, trainable set of new layers to it.
+
+#### The Analogy:
+* **Full Fine-Tuning:** Rewriting an entire 1,000-page textbook just to add a few new facts.
+* **LoRA:** Leaving the textbook untouched, but adding a thin **sticky note** to the margin of each chapter containing only the new information. 
+
+#### The Math (Simplified):
+In machine learning, model weights are stored in giant mathematical tables called **matrices**. 
+LoRA relies on a mathematical trick called *low-rank matrix decomposition*. It breaks down a giant weight update matrix into two *much smaller* matrices. When multiplied together, these small matrices mimic the effect of a large one, but require a fraction of the computational power and memory to train.
+
+---
+
+### Key Advantages of LoRA
+
+1. **Vastly Reduced Memory (VRAM):** Because you are only training a fraction of the parameters, you can fine-tune massive models on consumer-grade GPUs (like an NVIDIA RTX 3090 or 4090) instead of expensive enterprise server clusters.
+2. **Tiny File Sizes:** A fully fine-tuned model might be 20 GB. A LoRA file for that same model is usually only **10 MB to 200 MB**.
+3. **Fast Training:** Training takes minutes or hours instead of days.
+4. **Modularity (Mix & Match):** Because the base model remains unchanged, you can load different LoRAs on top of the same base model on the fly. 
+   * *Example:* You can keep one base image model and plug in a ""Cyberpunk Style LoRA,"" swap it for a ""Pixel Art LoRA,"" or combine both.
+
+---
+
+### Where is LoRA Used?
+
+* **Image Generation (e.g., Stable Diffusion, FLUX):** Artists and developers use LoRAs to teach AI specific art styles, specific characters, photographic lighting, or specific clothing designs.
+* **Large Language Models (LLMs):** Companies use LoRAs to adapt models like Llama or Mistral to specialized domains—such as medical diagnosis, legal paperwork analysis, or company-specific customer service scripts.
+
+---
+
+*(Note: In hardware and telecommunications, **LoRa**—spelled with a lowercase 'a'—stands for ""Long Range"", a radio communication protocol used for Internet of Things (IoT) devices. This is completely unrelated to AI LoRA.)*"
+gemini-3.6-flash,,What is LoRA?,2,True,,14.12,6,954,1129,2089,"**LoRA**, which stands for **Low-Rank Adaptation**, is a popular and efficient technique used in Artificial Intelligence to **fine-tune large AI models** (like Large Language Models or image generators) for specific tasks without needing massive computational power.
+
+It was introduced by researchers at Microsoft in 2021 and has become a cornerstone of modern open-source AI development.
+
+---
+
+### 1. The Problem LoRA Solves
+
+To understand LoRA, you first need to understand the problem with standard fine-tuning:
+
+Modern AI models—such as LLaMA, Mistral, or Stable Diffusion—have billions of parameters (weights). 
+* **Full Fine-Tuning:** To teach a 7-billion-parameter model a new skill (like writing legal documents or drawing in a specific anime style), traditional fine-tuning requires adjusting *all 7 billion parameters*.
+* **The Drawback:** This requires enormous amounts of GPU memory (VRAM), takes days or weeks, and results in a massive new file (often 10GB–30GB+) for *every single task* you fine-tune for.
+
+### 2. How LoRA Works (The Simple Explanation)
+
+Instead of changing the original model, **LoRA freezes the original model** and attaches tiny, trainable ""add-on"" layers to it. 
+
+Think of it like this:
+* **Base Model:** A massive 1,000-page textbook (frozen, unchangeable).
+* **LoRA:** A small sticky note attached to a page that contains specific extra instructions.
+
+When the AI runs, it looks at the base model **plus** the sticky note. Because you are only training the sticky note, the process is drastically faster and cheaper.
+
+### 3. How LoRA Works (The Technical Intuition)
+
+In deep learning, model weights are stored as massive grid-like tables called **matrices**. 
+
+When fine-tuning, we want to calculate the change in weights ($\Delta W$).
+1. Normally, if a matrix is $4,000 \times 4,000$, you have to train **16,000,000 parameters**.
+2. **LoRA's trick (Matrix Factorization):** LoRA breaks this change down into two much smaller matrices ($A$ and $B$) multiplied together. 
+   * Matrix $A$ might be $4,000 \times 2$ (8,000 parameters).
+   * Matrix $B$ might be $2 \times 4,000$ (8,000 parameters).
+   * Total trained parameters: **16,000** instead of **16,000,000**.
+
+This reduces the number of trainable parameters by **up to 99%**, while keeping almost the exact same quality as full fine-tuning.
+
+---
+
+### 4. Key Advantages of LoRA
+
+* **Low Hardware Requirements:** You can fine-tune massive models on consumer-grade GPUs (like an NVIDIA RTX 3090 or 4090) instead of needing a $100,000 enterprise server cluster.
+* **Tiny File Sizes:** While a base model might be 15 GB, a LoRA file is typically only **10 MB to 200 MB**.
+* **Modularity:** You can keep *one* single base model on your computer and load different tiny LoRA files on the fly depending on what you need (e.g., one LoRA for coding, one for medical advice, one for writing poetry).
+* **Zero Additional Inference Latency:** Once trained, the LoRA weights can be mathematically merged directly into the base model's weights, meaning it runs just as fast as the original model.
+
+---
+
+### 5. Common Use Cases
+
+* **Text Models (LLMs):** Adapting open-source LLMs (like LLaMA 3 or Mistral) to behave like a customer support agent, follow specific JSON output formats, or understand legal/medical terminology.
+* **Image Generation (Stable Diffusion):** Teaching image models to draw a specific real person, a custom product, a specific art style (e.g., 90s cartoon, watercolor), or specific poses/clothing.
+
+### Summary
+**LoRA is a shortcut for personalizing AI models.** It saves memory, time, and storage by freezing the main AI model and only training a tiny fraction of new parameters."
+gemini-3.6-flash,,What is LoRA?,3,True,,13.09,6,915,1173,2094,"**LoRA**, which stands for **Low-Rank Adaptation**, is a popular AI technique used to efficiently **fine-tune** large pre-trained models (like Large Language Models or AI image generators) for specific tasks, styles, or datasets. 
+
+Before LoRA, customizing a massive AI model required immense computing power and money. LoRA solved this problem by making fine-tuning up to **10,000 times more efficient** in terms of trainable parameters and memory usage.
+
+---
+
+### The Problem LoRA Solves
+
+To make a base model (like Meta’s LLaMA or Stable Diffusion) good at a specific task—like writing legal documents or generating anime-style art—you traditionally had to do **Full Fine-Tuning**. 
+
+Full fine-tuning updates **all billions of parameters** in the model. This comes with major downsides:
+1. **Extremely Expensive:** Requires massive industrial GPU clusters.
+2. **Huge Storage Needs:** Every time you fine-tune a model, you create a new multi-gigabyte (or terabyte) copy of the entire model.
+3. **Catastrophic Forgetting:** Updating all weights can make the model forget its general knowledge.
+
+---
+
+### How LoRA Works (The Simple Analogy)
+
+Imagine a massive, 1,000-page textbook representing a base AI model.
+
+* **Full Fine-Tuning:** Erasers out words and rewrites thousands of pages in the original textbook to teach it new things.
+* **LoRA:** Leaves the original textbook completely untouched (**""freezes"" the base model**). Instead, it places a transparent sheet of paper over certain pages and only writes small, targeted notes on that sheet.
+
+When the AI runs, it looks at the original page through the transparent sheet. The resulting output is a combination of the base knowledge + your custom notes.
+
+#### The Technical Magic: ""Low-Rank"" Matrices
+In technical terms, AI model weights are giant grids of numbers (matrices). LoRA breaks down a massive update matrix into **two very small matrices** (a process called *Low-Rank Decomposition*). 
+
+* **Without LoRA:** Updating a $4,000 \times 4,000$ matrix requires training **16,000,000** numbers.
+* **With LoRA (e.g., rank 8):** It splits this into two matrices ($4,000 \times 8$ and $8 \times 4,000$), requiring training only **64,000** numbers. 
+
+That is a **99.6% reduction** in trainable parameters, achieving almost the exact same quality.
+
+---
+
+### Why is LoRA so Popular?
+
+1. **Train on Consumer Hardware:** You can fine-tune powerful models on a standard desktop gaming GPU (like an Nvidia RTX 3090 or 4090) instead of a $200,000 server.
+2. **Tiny File Sizes:** While a base model might be **15 GB to 100 GB**, a LoRA file is typically only **10 MB to 200 MB**.
+3. **Easy Swapping:** You can keep one base model on your computer and instantly plug in different tiny LoRA files depending on what you want to do (e.g., swap between a ""Coding LoRA"", a ""Medical LoRA"", or a ""Creative Writing LoRA"").
+4. **Zero Speed Penalty:** When you are done training, you can mathematically merge the LoRA's weights back into the main model, meaning it runs just as fast as the original model.
+
+---
+
+### Where is LoRA used today?
+
+* **Image Generation (e.g., Stable Diffusion, FLUX):** Artists use LoRA to teach AI models specific art styles, brand aesthetics, or specific character faces.
+* **Large Language Models (e.g., Llama 3, Mistral):** Developers use LoRA to turn generic chat models into domain experts for law, medicine, coding, or specific corporate workflows.
+* **QLoRA:** A popular variation that combines LoRA with *Quantization* (compressing the base model to 4-bit memory), allowing people to fine-tune massive LLMs on even weaker hardware."
+gemini-3.6-flash,,What are the 3 homework levels in the AIE2026 course?,1,True,,8.65,18,422,615,1055,"In standard AI Engineering courses (including modern **AIE / AI Engineer** curricula), homework assignments are typically divided into **3 distinct levels** of difficulty to cater to different learning goals and depth of implementation:
+
+---
+
+### **1. Level 1: Basic / Guided (Foundational)**
+* **Focus:** Understanding core concepts, syntax, and foundational pipelines.
+* **Format:** Often provided as step-by-step Jupyter notebooks, code fill-ins (e.g., `TODO` blocks), or running/debugging existing baseline models.
+* **Goal:** Ensure you understand the theory and can run the basic setup without getting stuck on boilerplate code.
+
+---
+
+### **2. Level 2: Intermediate / Core (Implementation)**
+* **Focus:** Practical application and end-to-end implementation.
+* **Format:** You are given a spec or problem statement and must build the solution (e.g., training a model, building a RAG pipeline, writing a custom API endpoint, fine-tuning an LLM). Less starter code is provided compared to Level 1.
+* **Goal:** Prove mastery over the main tools, frameworks, and architecture required for the module.
+
+---
+
+### **3. Level 3: Advanced / Stretch (Production & Optimization)**
+* **Focus:** Real-world readiness, edge cases, deployment, and optimization.
+* **Format:** Open-ended or high-difficulty challenges—such as optimizing latency/throughput, deploying to cloud infrastructure, handling failure modes, implementing custom evaluation benchmarks, or extending the project with a novel feature.
+* **Goal:** Challenge advanced learners to build production-grade, scalable AI systems.
+
+---
+
+*Note: If **AIE2026** refers to a specific university course code or specific online cohort platform, the exact internal titles (e.g., Bronze/Silver/Gold or Easy/Medium/Hard) might vary slightly. If you are referring to a specific institution's syllabus, feel free to mention the platform/university for precise terminology!*"
+gemini-3.6-flash,,What are the 3 homework levels in the AIE2026 course?,2,True,,9.45,18,368,1074,1460,"In most **AI Engineering (AIE)** courses and bootcamps, homework assignments are structured into **3 progressive levels** designed to cater to different skill levels and encourage deeper learning:
+
+---
+
+### **1. Level 1: Foundational / Guided (Basic)**
+* **Focus:** Reinforcing core concepts and basic syntax.
+* **Format:** Fill-in-the-blank code snippets, guided Jupyter notebooks, or short multiple-choice conceptual questions.
+* **Goal:** Ensures you understand the foundational theory, API usage, and basic setup before moving on to building complete pipelines.
+
+---
+
+### **2. Level 2: Core / Practical (Intermediate)**
+* **Focus:** Implementation and standard model application.
+* **Format:** Building end-to-end models or pipelines with minimal starter code (e.g., data preprocessing, model training, evaluation metrics, or API integration).
+* **Goal:** Demonstrates your ability to apply taught concepts to solve standard, well-defined problems independently.
+
+---
+
+### **3. Level 3: Advanced / Challenge (Expert)**
+* **Focus:** Real-world complexity, optimization, and extension.
+* **Format:** Open-ended project challenges, hyperparameter tuning, model deployment, handling noisy real-world data, or implementing recent research papers/advanced techniques without step-by-step guidance.
+* **Goal:** Pushes top-tier learners to tackle production-grade problems, edge cases, and architectural trade-offs.
+
+---
+
+*(Note: If **AIE2026** refers to a specific university course code or online portal's specific naming convention—such as Bronze/Silver/Gold or Starter/Core/Bonus—feel free to clarify the institution/platform for the exact course syllabus terminology!)*"
+gemini-3.6-flash,,What are the 3 homework levels in the AIE2026 course?,3,True,,11.95,18,299,1150,1467,"If you are referring to a specific university or platform course standard (such as an **AI Engineering** or **Artificial Intelligence in Education** curriculum labeled **AIE2026**), homework assignments are typically categorized into **three standard difficulty/completion levels**:
+
+1. **Level 1: Core / Fundamental (Basic)**
+   * **Focus:** Understanding concepts and basic implementation.
+   * **Tasks:** Guided coding exercises, filling in missing code blocks (starter templates), multiple-choice theory questions, or running baseline models on provided datasets.
+
+2. **Level 2: Intermediate / Applied (Standard)**
+   * **Focus:** Practical application and pipeline integration.
+   * **Tasks:** Building end-to-end models/pipelines from scratch, preprocessing real-world data, hyperparameter tuning, and analyzing model performance/metrics.
+
+3. **Level 3: Advanced / Challenge (Bonus / Mastery)**
+   * **Focus:** Optimization, research, and open-ended problem solving.
+   * **Tasks:** Implementing novel architectures or research papers, optimizing inference/training speed, handling complex edge cases, or deploying the project into production.
+
+---
+
+*(Note: Depending on the specific platform offering **AIE2026**—such as a university course code or a specific bootcamp—the exact naming convention may use terms like **Bronze / Silver / Gold**, **Foundation / Application / Mastery**, or **Easy / Medium / Hard**).*"
+gemini-3.6-flash,,What is a lecNN-start tag in the AIE2026 course?,1,True,,10.04,19,463,819,1301,"In the context of computer science and AI courses like **AIE2026**, a **`lecNN-start` tag** (where `NN` represents a two-digit lecture number, such as `lec01-start` or `lec05-start`) is a **Git tag** used in the course’s code repository. 
+
+It marks the **starter code** (or baseline code) for a specific lecture before any live coding, demonstrations, or exercises take place.
+
+---
+
+### Key Breakdown of the Tag
+
+* **`lec`**: Stands for ""Lecture"".
+* **`NN`**: The lecture number (e.g., `01`, `02`, `12`).
+* **`-start`**: Indicates the initial state of the code repository at the beginning of that lecture.
+
+---
+
+### What is it used for?
+
+1. **Following Along in Class:** Instructors use this tag so that all students can start from the exact same code codebase at the beginning of a lecture or lab session.
+2. **Clean State:** If you made changes during practice and want to reset your local code back to how the lecture originally began, checking out this tag gives you a clean slate.
+3. **Paired with End Tags:** Usually, repositories with `lecNN-start` will also have a corresponding **`lecNN-end`** (or `lecNN-solution`) tag, which shows the completed code at the end of the lecture.
+
+---
+
+### How to use it in Git
+
+If you are working with the course repository in your terminal, you can switch your codebase to that specific lecture's starting point using:
+
+```bash
+# Fetch the latest tags from the main repository
+git fetch --tags
+
+# Checkout the starter code for a specific lecture (e.g., Lecture 3)
+git checkout lec03-start
+```
+
+*(Note: Checking out a tag puts you in a ""detached HEAD"" state, which is normal when viewing past checkpoints. If you plan to write code, it is usually recommended to create a new branch from that tag: `git checkout -b my-lec03-work lec03-start`.)*"
+gemini-3.6-flash,,What is a lecNN-start tag in the AIE2026 course?,2,True,,9.0,19,486,785,1290,"In the context of the **AIE2026** course (and similar university/online programming courses), **`lecNN-start`** is a **Git tag** used in the course’s code repository. 
+
+It marks the exact state of the codebase at the **beginning of a specific lecture**, allowing students to easily fetch and follow along with the starter code used during class.
+
+---
+
+### Breakdown of the Tag Format:
+* **`lec`**: Short for **Lecture**.
+* **`NN`**: A two-digit placeholder for the lecture number (e.g., `01`, `02`, `10`).
+* **`-start`**: Indicates the repository state **before** any live-coding, exercises, or modifications take place during that lecture.
+
+#### Examples:
+* **`lec01-start`**: The starter code for Lecture 1.
+* **`lec05-start`**: The starter code for Lecture 5.
+
+---
+
+### Why is it used?
+
+1. **Follow-along Live Coding:** It allows you to check out the exact code the instructor starts with so you can write code along with them during the lecture.
+2. **Catching Up:** If your code breaks during class, you can quickly reset your repository to `lecNN-start` to get a clean slate.
+3. **Paired with `lecNN-end`:** Instructors often push a corresponding **`lecNN-end`** or **`lecNN-final`** tag after the class, which contains the completed code written during the lecture so you can compare your work.
+
+---
+
+### How to use it in Git
+
+To jump to the starting code for a specific lecture (e.g., Lecture 3), run the following commands in your terminal:
+
+1. **Fetch the latest tags from the remote repository:**
+   ```bash
+   git fetch --tags
+   ```
+
+2. **Check out the tag:**
+   ```bash
+   git checkout lec03-start
+   ```
+
+3. *(Optional)* **Create a new local branch to work on so you don't stay in a ""detached HEAD"" state:**
+   ```bash
+   git checkout -b my-lec03-work lec03-start
+   ```"
+gemini-3.6-flash,,What is a lecNN-start tag in the AIE2026 course?,3,True,,8.9,19,511,841,1371,"In the context of computer science and AI courses like **AIE2026**, a **`lecNN-start` tag** is a **Git tag** used in the course repository to mark the **starting point (skeleton code)** for a specific lecture or hands-on lab exercise.
+
+Here is a breakdown of what the tag means and how it works:
+
+---
+
+### 1. Tag Anatomy
+* **`lec`**: Stands for ""Lecture"".
+* **`NN`**: Represents the lecture or lab number (e.g., `lec01`, `lec02`, `lec05`).
+* **`-start`**: Indicates the initial state of the code *before* the lecture's coding demonstration or assignment begins.
+
+For example, **`lec03-start`** is the starting code for **Lecture 3**.
+
+---
+
+### 2. Purpose in the Course
+Instructors use these tags to make hands-on programming exercises manageable:
+* **Clean Baseline:** It provides you with the exact starter code, helper functions, and file structure needed for that day's lecture.
+* **Synchronization:** It allows all students to start from the exact same codebase, preventing issues caused by incomplete work from previous lectures.
+* **In-Class Live Coding:** If the instructor code-alongs during class, students can check out this tag to follow along in real-time.
+
+---
+
+### 3. How to Use It (Common Git Commands)
+
+To switch your repository to a specific lecture's starting tag, you typically run these commands in your terminal:
+
+1. **Fetch the latest tags from the main repository:**
+   ```bash
+   git fetch --all --tags
+   ```
+
+2. **Check out the specific lecture tag (e.g., Lecture 2):**
+   ```bash
+   git checkout lec02-start
+   ```
+
+3. **(Optional) Create a new working branch from this tag:**
+   If you want to save your own work without detached HEAD issues:
+   ```bash
+   git checkout -b my-lec02-work lec02-start
+   ```
+
+---
+
+### Related Tags You Might See
+* **`lecNN-end`**: The final code state *after* the lecture (includes solutions or completed live-coding).
+* **`lecNN-sol`**: Solution code for exercise/lab sections within that lecture."
