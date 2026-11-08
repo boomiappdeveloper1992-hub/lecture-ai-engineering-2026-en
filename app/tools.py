@@ -5,10 +5,15 @@ Rewriting descriptions changes whether the model uses a tool and which arguments
 """
 
 import json
+import random
+import re
+from datetime import datetime
 from functools import cache
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+# Lecture 03 homework (Implementation): where save_learning_log writes its records
+LOG_DIR = Path(__file__).resolve().parent.parent / "learning_log"
 MAX_RESULTS = 3
 
 
@@ -77,3 +82,49 @@ def get_lecture_summary(lecture: int) -> str:
         available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
         return f"Key points for Lecture {lecture:02d} are not available yet. Available sessions: {', '.join(available)}"
     return path.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------- Lecture 03 exercise
+def make_quiz(lecture: int) -> str:
+    """Pick one term covered in the given session and return a review question with its answer.
+
+    Use when the learner asks for a review question or a quiz about a session,
+    such as "Give me one review question from Lecture 02". lecture is the session number (an integer starting at 1).
+    Ask the learner the question first and reveal the answer only after they have tried.
+    """
+    terms = [e for e in load_glossary() if e["lecture"] == lecture]
+    if not terms:
+        available = sorted({e["lecture"] for e in load_glossary()})
+        return (f"There are no glossary terms for Lecture {lecture:02d}. "
+                f"Sessions with terms: {', '.join(f'{n:02d}' for n in available)}")
+    entry = random.choice(terms)
+    return json.dumps(
+        {"lecture": lecture, "question": f"What does \u201c{entry['term']}\u201d mean?", "answer": entry["definition"]},
+        ensure_ascii=False,
+    )
+
+
+# ---------------------------------------------------------------- Lecture 03 homework (Implementation)
+def _slug(text: str) -> str:
+    slug = re.sub(r"[^0-9A-Za-z]+", "-", text).strip("-").lower()
+    return slug[:40] or "note"
+
+
+def save_learning_log(title: str, content: str) -> str:
+    """Save a learning record (what the learner studied, understood or wants to review) as a Markdown file in learning_log/.
+
+    Use only when the learner explicitly asks to save, record or log something, such as
+    "Save what I learned about LoRA today". title is a short heading; content is the text of the record.
+    Saving writes a file, so the learner is asked to approve each save before it runs.
+    """
+    if not title.strip() or not content.strip():
+        return "Nothing was saved: both title and content are required."
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    now = datetime.now()
+    path = LOG_DIR / f"{now:%Y-%m-%d_%H%M%S}_{_slug(title)}.md"
+    n = 2
+    while path.exists():  # never overwrite an existing record
+        path = LOG_DIR / f"{now:%Y-%m-%d_%H%M%S}_{_slug(title)}-{n}.md"
+        n += 1
+    path.write_text(f"# {title.strip()}\n\n_Saved: {now:%Y-%m-%d %H:%M}_\n\n{content.strip()}\n", encoding="utf-8")
+    return f"Saved the learning record to {path.relative_to(LOG_DIR.parent)}"

@@ -3,6 +3,8 @@
 Usage:
     uv run python -m app.agent "What is a lecNN-start tag in the AIE2026 course?"
     uv run python -m app.agent --trace "What is the difference between LoRA and QLoRA?"   # Show tool calls
+    uv run python -m app.agent --trace "Give me one review question from Lecture 02"      # Lecture 03 exercise: make_quiz
+    uv run python -m app.agent --trace "Save a note: LoRA trains small adapters only"     # Lecture 03 homework: asks before saving
     uv run python -m app.agent --mcp --trace "What is LoRA?"    # Lecture 05: receive tools from MCP servers
     uv run python -m app.agent --mcp --list-tools               # Lecture 05: list tools visible to the model (no API key needed)
 
@@ -16,7 +18,9 @@ import inspect
 import json
 from pathlib import Path
 
-from pydantic_ai import Agent
+import types
+
+from pydantic_ai import Agent, DeferredToolRequests, DeferredToolResults, ToolDenied
 from pydantic_ai.exceptions import ModelHTTPError
 from fastmcp import Client
 from pydantic_ai.mcp import MCPToolset, StdioTransport
@@ -37,12 +41,41 @@ You are a learning support agent for the AI Engineering Pilot Course (AIE2026).
 - Guide learners with hints on how to think, rather than writing homework answers for them.
 """
 
-# Pass the model at runtime (so tests can substitute TestModel without calling an API)
-agent = Agent(instructions=INSTRUCTIONS)
-agent.tool_plain(tools.search_glossary)
-agent.tool_plain(tools.get_lecture_summary)
 
-# TODO(Lecture 03 exercise): create make_quiz in tools.py and register it here
+
+def with_docstring(func, docstring: str):
+    """A copy of a tool function with a different docstring (= a different tool description for the model).
+
+    Lecture 03 homework (Basic) uses this to compare docstrings without editing app/tools.py.
+    """
+    copy = types.FunctionType(func.__code__, func.__globals__, func.__name__, func.__defaults__, func.__closure__)
+    copy.__doc__ = docstring
+    copy.__annotations__ = dict(func.__annotations__)
+    copy.__module__ = func.__module__
+    return copy
+
+
+def build_agent(instructions: str = INSTRUCTIONS, docstrings: dict[str, str] | None = None) -> Agent:
+    """Assemble the agent. Arguments are only for the Basic homework comparison; the defaults give the normal agent.
+
+    output_type includes DeferredToolRequests: when the model calls a tool that requires approval,
+    the run pauses and returns the pending calls instead of an answer (Lecture 03 homework, Implementation).
+    """
+    docstrings = docstrings or {}
+
+    def tool(func):
+        return with_docstring(func, docstrings[func.__name__]) if func.__name__ in docstrings else func
+
+    built = Agent(instructions=instructions, output_type=[str, DeferredToolRequests])
+    built.tool_plain(tool(tools.search_glossary))
+    built.tool_plain(tool(tools.get_lecture_summary))
+    built.tool_plain(tool(tools.make_quiz))                                  # Lecture 03 exercise
+    built.tool_plain(tool(tools.save_learning_log), requires_approval=True)  # Lecture 03 homework: writes a file, so ask first
+    return built
+
+
+# Pass the model at runtime (so tests can substitute TestModel without calling an API)
+agent = build_agent()
 
 # Lecture 05: MCP server configuration file. Uses the same "mcpServers" format as Claude Desktop and Cursor
 MCP_CONFIG = Path(__file__).resolve().parent / "mcp_servers.json"
@@ -98,16 +131,54 @@ def print_tools(target: Agent) -> None:
         print(f"  Arguments: {json.dumps(params, ensure_ascii=False)}")
 
 
-def print_trace(result) -> None:
-    """Display which tools were called with which arguments and what they returned."""
-    print("\n--- trace ---")
+def trace_lines(result) -> list[str]:
+    """Which tools were called with which arguments and what they returned, one line each."""
+    lines = []
     for message in result.all_messages():
         for part in message.parts:
             if isinstance(part, ToolCallPart):
-                print(f"[tool call]   {part.tool_name}({part.args})")
+                lines.append(f"[tool call]   {part.tool_name}({part.args})")
             elif isinstance(part, ToolReturnPart):
-                print(f"[tool return] {part.tool_name} -> {str(part.content)[:120]}…")
-    print(f"[usage] {result.usage}")
+                lines.append(f"[tool return] {part.tool_name} -> {str(part.content)[:120]}…")
+    lines.append(f"[usage] {result.usage}")
+    return lines
+
+
+def print_trace(result) -> None:
+    """Display which tools were called with which arguments and what they returned."""
+    print("\n--- trace ---")
+    print("\n".join(trace_lines(result)))
+
+
+# ---------------------------------------------------------------- Lecture 03 homework (Implementation)
+def decide_approvals(requests: DeferredToolRequests, input_fn=input) -> DeferredToolResults:
+    """Ask the learner about each tool call waiting for approval. Anything but y/yes denies it."""
+    results = DeferredToolResults()
+    for call in requests.approvals:
+        args = call.args_as_dict()
+        print(f"\n[approval needed] {call.tool_name}")
+        for key, value in args.items():
+            print(f"  {key}: {value}")
+        try:
+            answer = input_fn("Allow this? [y/N] ").strip().lower()
+        except EOFError:  # no terminal (for example, piped input): never save without a clear yes
+            answer = ""
+        if answer in ("y", "yes"):
+            results.approvals[call.tool_call_id] = True
+        else:
+            results.approvals[call.tool_call_id] = ToolDenied("The learner declined, so nothing was saved.")
+    return results
+
+
+def run_with_approvals(target: Agent, question: str, model, input_fn=input):
+    """Run the agent; whenever it pauses for approval, ask, then resume with the decisions and the history so far."""
+    result = target.run_sync(question, model=model)
+    while isinstance(result.output, DeferredToolRequests):
+        decisions = decide_approvals(result.output, input_fn)
+        # usage=… carries the counts over, so --trace shows the requests for the whole question, not just the resumed part
+        result = target.run_sync(message_history=result.all_messages(), deferred_tool_results=decisions, model=model,
+                                 usage=result.usage)
+    return result
 
 
 def main() -> None:
@@ -129,7 +200,7 @@ def main() -> None:
     if args.mcp:
         print("[tools] MCP servers (app/mcp_servers.json)")
     try:
-        result = target.run_sync(args.question, model=build_model())
+        result = run_with_approvals(target, args.question, build_model())
     except ModelHTTPError as e:
         print(api_error_message(e.status_code, str(e.body)[:200]))
         raise SystemExit(1)
