@@ -23,6 +23,8 @@ RAG_TOP_K = 5
 GRAPH_START_K = 3
 GRAPH_HOPS = 2
 GRAPH_MAX_RESULTS = 10
+GRAPH_RERANK_POOL = 400
+GRAPH_RERANK_MARGIN = 0.05
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSIONS = 768
 # Leave room below the 2,048-token limit for the task specification and other overhead. Stop instead of truncating on overflow.
