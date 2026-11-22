@@ -125,3 +125,21 @@ def search_graph(query: str) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
     except APIError as e:
         return json.dumps({"error": api_error_message(e.code)}, ensure_ascii=False)
+
+
+def search_graph_ranked(query: str) -> str:
+    """Search the materials, follow adjacent pages and shared terms, then keep only the related pages closest to the question.
+
+    Returns seeds (best search matches) and expanded (pages found through the graph, ranked by similarity to the question,
+    each with its distance and the path that reached it). Use query to specify what you want to look up.
+    """
+    import sqlite3
+    from google.genai.errors import APIError
+    from app.retrieval import search_graph_ranked as search
+
+    try:
+        return json.dumps(search(query), ensure_ascii=False)
+    except (ValueError, OSError, sqlite3.Error) as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+    except APIError as e:
+        return json.dumps({"error": api_error_message(e.code)}, ensure_ascii=False)

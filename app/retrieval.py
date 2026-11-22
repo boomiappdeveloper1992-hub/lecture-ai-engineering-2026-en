@@ -18,6 +18,7 @@ from app.config import (
     EMBEDDING_DIMENSIONS, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL,
     RAG_DB, RAG_DOCUMENT_IDS, RAG_SOURCE, RAG_TOP_K, RAG_TREE, get_api_key,
     RAG_GRAPH, GRAPH_START_K, GRAPH_HOPS, GRAPH_MAX_RESULTS,
+    GRAPH_RERANK_POOL, GRAPH_RERANK_MARGIN,
 )
 
 
@@ -189,6 +190,93 @@ def search_graph(query: str) -> dict:
     return {"seeds": results, "expanded": expanded[:max(0, GRAPH_MAX_RESULTS - len(results))],
             "max_hops": GRAPH_HOPS}
 
+
+
+
+# ---------------------------------------------------------------- Lecture 05 homework (Advanced)
+def _page_distances(db, vector: list[float], page_ids: list[str]) -> dict[str, float]:
+    """Cosine distance from the question vector to each listed page, using the embeddings already in the index."""
+    if not page_ids:
+        return {}
+    marks = ",".join("?" * len(page_ids))
+    rows = db.execute(
+        f"SELECT page_id, vec_distance_cosine(embedding, ?) AS distance FROM chunks WHERE page_id IN ({marks})",
+        (sqlite_vec.serialize_float32(vector), *page_ids),
+    )
+    return {row["page_id"]: row["distance"] for row in rows}
+
+
+def search_graph_ranked(query: str) -> dict:
+    """Graph + re-ranking: follow the graph for recall, then keep only candidates close to the question.
+
+    1. Embed the question once and take the GRAPH_START_K nearest pages as seeds (same as search_graph).
+    2. Breadth-first from each seed along next_page and mentions edges, up to GRAPH_HOPS hops, collecting
+       every reachable page (up to GRAPH_RERANK_POOL), not just the first ones found.
+    3. Score every candidate by cosine distance to the question with the stored page embeddings
+       (no extra API call), drop those farther than the weakest seed + GRAPH_RERANK_MARGIN,
+       and return the closest ones so that seeds + expanded <= GRAPH_MAX_RESULTS.
+    """
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("The search query is empty.")
+    pages = {page["page_id"]: page for page in load_pages(RAG_SOURCE)}
+    graph = json.loads(RAG_GRAPH.read_text(encoding="utf-8"))
+    nodes = {node["id"]: node for node in graph["nodes"] if node["kind"] == "term" or node["id"] in pages}
+    adjacent = defaultdict(set)
+    for edge in graph["edges"]:
+        a, b = edge["source"], edge["target"]
+        if edge["relation"] in ("next_page", "mentions") and a in nodes and b in nodes:
+            adjacent[a].add(b)
+            adjacent[b].add(a)
+
+    with open_index(RAG_DB) as db:
+        vector = embed_text(query.strip(), "RETRIEVAL_QUERY")
+        rows = db.execute("""
+            SELECT page_id, vec_distance_cosine(embedding, ?) AS distance
+            FROM chunks ORDER BY distance, page_id LIMIT ?
+        """, (sqlite_vec.serialize_float32(vector), max(GRAPH_START_K, RAG_TOP_K) * 3))
+        ranked = [dict(row) for row in rows if row["page_id"] in pages]
+        seeds = ranked[:min(GRAPH_START_K, GRAPH_MAX_RESULTS)]
+        seed_ids = [seed["page_id"] for seed in seeds]
+
+        # Step 2: collect every page within GRAPH_HOPS of any seed, keeping its shortest path
+        found: dict[str, list[str]] = {}
+        for root in seed_ids:
+            queue, visited = deque([(root, [root])]), {root}
+            while queue:
+                current, path = queue.popleft()
+                if len(path) - 1 >= GRAPH_HOPS:
+                    continue
+                for neighbor in sorted(adjacent[current]):
+                    if neighbor in visited:
+                        continue
+                    visited.add(neighbor)
+                    route = path + [neighbor]
+                    queue.append((neighbor, route))
+                    if neighbor in pages and neighbor not in seed_ids:
+                        if neighbor not in found or len(route) < len(found[neighbor]):
+                            found[neighbor] = route
+        pool = sorted(found, key=lambda pid: (len(found[pid]), pid))[:GRAPH_RERANK_POOL]
+
+        # Step 3: score the pool against the question and keep only close candidates
+        distances = _page_distances(db, vector, pool)
+
+    threshold = max(seed["distance"] for seed in seeds) + GRAPH_RERANK_MARGIN if seeds else 0.0
+    kept = sorted((pid for pid in pool if distances.get(pid, 9.9) <= threshold), key=lambda pid: (distances[pid], pid))
+    room = max(0, GRAPH_MAX_RESULTS - len(seeds))
+
+    def path_of(route):
+        return [{"id": n, "title": nodes[n]["title"]} for n in route]
+
+    return {
+        "seeds": [{**pages[s["page_id"]], "distance": round(s["distance"], 4), "hops": 0,
+                   "path": path_of([s["page_id"]])} for s in seeds],
+        "expanded": [{**pages[pid], "distance": round(distances[pid], 4), "hops": len(found[pid]) - 1,
+                      "path": path_of(found[pid])} for pid in kept[:room]],
+        "max_hops": GRAPH_HOPS,
+        "candidates_scored": len(pool),
+        "dropped_as_too_far": len(pool) - len(kept),
+        "distance_threshold": round(threshold, 4),
+    }
 
 
 def run_full_context(agent, question: str, model, instructions: str, prompt_template: str):
